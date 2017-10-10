@@ -3,6 +3,7 @@ Helpful functions.
 """
 
 import tensorflow as tf
+from tensorflow_oop.compatibility_imports import *
 
 
 class TFUtils(object):

@@ -6,6 +6,7 @@ import numpy as np
 from collections import Counter
 import operator
 
+from tensorflow_oop.compatibility_imports import *
 
 class TFBagOfWords(object):
 

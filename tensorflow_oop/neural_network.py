@@ -10,6 +10,7 @@ import sys
 import warnings
 from tensorflow.contrib.tensorboard.plugins import projector
 
+from tensorflow_oop.compatibility_imports import *
 from tensorflow_oop.dataset import *
 from tensorflow_oop.decorators import *
 

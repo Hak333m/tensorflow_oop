@@ -6,6 +6,8 @@ import numpy as np
 import pickle
 import warnings
 
+from tensorflow_oop.compatibility_imports import *
+
 
 def check_initialization(function):
     """Decorator for check initialization."""

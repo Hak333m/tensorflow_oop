@@ -3,6 +3,7 @@ Decorators.
 """
 
 import tensorflow as tf
+from tensorflow_oop.compatibility_imports import *
 from tensorflow_oop.dataset import *
 
 
