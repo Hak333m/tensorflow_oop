@@ -63,6 +63,16 @@ Usage examples for MNIST located in folder 'example'. Run with '--help' option f
 ```
 python example/<EXAMPLE_NAME>.py
 ```
+P.S. If script can't automatically download MNIST data use commands:
+```
+mkdir example/mnist_data
+cd example/mnist_data
+curl -O http://yann.lecun.com/exdb/mnist/train-images-idx3-ubyte.gz
+curl -O http://yann.lecun.com/exdb/mnist/train-labels-idx1-ubyte.gz
+curl -O http://yann.lecun.com/exdb/mnist/t10k-images-idx3-ubyte.gz
+curl -O http://yann.lecun.com/exdb/mnist/t10k-labels-idx1-ubyte.gz
+cd ../..
+```
 
 ## Test
 Unittest scripts located in folder 'test'.
