@@ -14,14 +14,17 @@ class TFBagOfWords(object):
     Bag of words model.
 
     Attributes:
-        size               Dictionary length.
-        non_chars          String with chars for excluding.
-        lower_case         Indicator of case insensitive mode.
-        digit_as_zero      Indicator of converting all digits to zero.
-        min_count          Filter minimum words count for adding to dictionary.
-        max_count          Filter maximum words count for adding to dictionary.
-        words_counter      Counter object of all words in texts.
-        dictionary         Dict object of correct words in texts.
+        size                   Dictionary length.
+        non_chars              String with chars for excluding.
+        lower_case             Indicator of case insensitive mode.
+        digit_as_zero          Indicator of converting all digits to zero.
+        min_count              Filter minimum words count for adding to dictionary.
+        max_count              Filter maximum words count for adding to dictionary.
+        max_dictionary_size    Maximal dictionary size, other words marked as unknown_word.
+        unknown_word           Word for replace rare words if dictionary size greater then max_dictionary_size.
+        words_counter          Counter object of all words in texts.
+        dictionary             Dict object of correct words in texts.
+
     """
 
     __slots__ = ['size',
@@ -35,18 +38,33 @@ class TFBagOfWords(object):
                  lower_case=True,
                  digit_as_zero=True,
                  min_count=1,
-                 max_count=np.inf):
+                 max_count=np.inf,
+                 max_dictionary_size=None,
+                 unknown_word=None):
         """Constructor.
 
         Arguments:
-            texts              List of texts for building dictionary.
-            non_chars          String with chars for excluding.
-            lower_case         Indicator of case insensitive mode.
-            digit_as_zero      Indicator of converting all digits to zero.
-            min_count          Filter minimum words count for adding to dictionary.
-            max_count          Filter maximum words count for adding to dictionary.
+            texts                  List of texts for building dictionary.
+            non_chars              String with chars for excluding.
+            lower_case             Indicator of case insensitive mode.
+            digit_as_zero          Indicator of converting all digits to zero.
+            min_count              Filter minimum words count for adding to dictionary.
+            max_count              Filter maximum words count for adding to dictionary.
+            max_dictionary_size    Maximal dictionary size, other words marked as unknown_word.
+            unknown_word           Word for replace rare words if dictionary size greater then max_dictionary_size.
 
         """
+
+        assert min_count > 0, \
+            '''Minimum count should be greater then zero.'''
+        assert max_count >= min_count, \
+            '''Maximum count should not be less then minimum count.'''
+        if max_dictionary_size is not None:
+            assert max_dictionary_size > 0, \
+                '''Maximum dictionary size should be greater then zero.'''
+        if unknown_word is not None:
+            assert isinstance(unknown_word, str), \
+                '''Unknown word should be string.'''
 
         # Save properties
         if non_chars is not None:
@@ -57,6 +75,8 @@ class TFBagOfWords(object):
         self.digit_as_zero = digit_as_zero
         self.min_count = min_count
         self.max_count = max_count
+        self.unknown_count = 0
+        self.unknown_word = unknown_word
 
         # Calculate statistic
         words = self.list_of_words(' '.join(texts))
@@ -68,6 +88,37 @@ class TFBagOfWords(object):
             if self.min_count <= self.words_counter[word] <= self.max_count:
                 self.dictionary[word] = len(self.dictionary)
         self.size = len(self.dictionary)
+        
+        # Check dictionary size
+        if max_dictionary_size is not None and max_dictionary_size < len(self.dictionary):
+            # Check if should be replaced unknown words
+            if unknown_word is None:
+                # Get known words
+                known_words = set(Counter(self.dictionary).most_common(max_dictionary_size))
+
+                # Recalculate dictionary
+                self.dictionary = {unknown_word: 0}
+                for word in known_words:
+                    self.dictionary[word] = len(self.dictionary)
+                self.size = len(self.dictionary)
+
+            else:
+                # Get known words
+                known_words = set(Counter(self.dictionary).most_common(max_dictionary_size - 1))
+
+                assert unknown_word not in known_words, \
+                    '''Unknown word string '%s' can't be in known words.''' % unknown_word
+
+                # Calculate unknown words count
+                for word in self.dictionary:
+                    if word not in known_words:
+                        self.unknown_count += 1
+
+                # Recalculate dictionary
+                self.dictionary = {unknown_word: 0}
+                for word in known_words:
+                    self.dictionary[word] = len(self.dictionary)
+                self.size = len(self.dictionary)
 
     def list_of_words(self, text):
         """Get list of standart words from text.

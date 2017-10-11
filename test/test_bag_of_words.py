@@ -16,11 +16,13 @@ class TestTFBagOfWords(unittest.TestCase):
         self.empty = TFBagOfWords([])
         self.bow = TFBagOfWords(self.texts)
         self.bow_all = TFBagOfWords(self.texts, '')
+        self.bow_max = TFBagOfWords(self.texts, '', max_dictionary_size=2)
 
     def test_init(self):
         self.assertEqual(self.empty.size, 0)
         self.assertEqual(self.bow.size, 5)
         self.assertEqual(self.bow_all.size, 8)
+        self.assertEqual(self.bow_max.size, 2)
 
     def test_list_of_words(self):
         list_of_words = self.bow.list_of_words(self.texts[0])
