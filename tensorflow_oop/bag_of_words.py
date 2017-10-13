@@ -3,7 +3,7 @@ Bag of words.
 """
 
 import numpy as np
-from collections import Counter
+import collections
 import operator
 
 from tensorflow_oop.compatibility_imports import *
@@ -22,7 +22,10 @@ class TFBagOfWords(object):
         max_count              Filter maximum words count for adding to dictionary.
         max_dictionary_size    Maximal dictionary size, other words marked as unknown_word.
         unknown_word           Word for replace rare words if dictionary size greater then max_dictionary_size.
-        words_counter          Counter object of all words in texts.
+        all_words_counter      Counter object of all words in texts.
+        rare_words_counter     Counter object of too rare words in texts.
+        freq_words_counter     Counter object of too frequent words in texts.
+        valid_words_counter    Counter object of valid words in texts.
         dictionary             Dict object of correct words in texts.
 
     """
@@ -39,8 +42,9 @@ class TFBagOfWords(object):
                  digit_as_zero=True,
                  min_count=1,
                  max_count=np.inf,
-                 max_dictionary_size=None,
-                 unknown_word=None):
+                 max_dictionary_size=np.inf,
+                 rare_word='UNKRARE'
+                 freq_word='UNKFREQ'):
         """Constructor.
 
         Arguments:
@@ -56,18 +60,26 @@ class TFBagOfWords(object):
         """
 
         assert min_count > 0, \
-            '''Minimum count should be greater then zero.'''
+            '''Minimum count should be greater then zero:
+               min_count = %s''' % min_count
         assert max_count >= min_count, \
-            '''Maximum count should not be less then minimum count.'''
-        if max_dictionary_size is not None:
-            assert max_dictionary_size > 0, \
-                '''Maximum dictionary size should be greater then zero.'''
-        if unknown_word is not None:
-            assert isinstance(unknown_word, str), \
-                '''Unknown word should be string.'''
+            '''Maximum count should not be less then minimum count:
+               min_count = %s, max_count = %s''' % (min_count, max_count)
+        assert max_dictionary_size > 0, \
+            '''Maximum dictionary size should be greater then zero:
+               max_dictionary_size = %s''' % max_dictionary_size
+        assert isinstance(rare_word, str), \
+            '''Rare word should be string:
+               type(rare_word) == %s''' % type(rare_word)
+        assert isinstance(freq_word, str), \
+            '''Frequent word should be string:
+               type(freq_word) == %s''' % type(freq_word)
 
         # Save properties
         if non_chars is not None:
+            assert isinstance(non_chars, str), \
+                '''Non char symbols should be string:
+                   type(non_chars) == %s''' % type(non_chars)
             self.non_chars = non_chars
         else:
             self.non_chars = '/.,!?()_-";:*=&|%<>@\'\t\n\r'
@@ -75,12 +87,12 @@ class TFBagOfWords(object):
         self.digit_as_zero = digit_as_zero
         self.min_count = min_count
         self.max_count = max_count
-        self.unknown_count = 0
-        self.unknown_word = unknown_word
+        self.rare_word = rare_word
+        self.freq_word = freq_word
 
         # Calculate statistic
         words = self.list_of_words(' '.join(texts))
-        self.words_counter = Counter(words)
+        self.all_words_counter = collections.Counter(words)
 
         # Calculate dictionary
         self.dictionary = {}
@@ -90,11 +102,11 @@ class TFBagOfWords(object):
         self.size = len(self.dictionary)
         
         # Check dictionary size
-        if max_dictionary_size is not None and max_dictionary_size < len(self.dictionary):
+        if self.size > max_dictionary_size:
             # Check if should be replaced unknown words
             if unknown_word is None:
                 # Get known words
-                known_words = set(Counter(self.dictionary).most_common(max_dictionary_size))
+                known_words = set(collections.Counter(self.dictionary).most_common(max_dictionary_size))
 
                 # Recalculate dictionary
                 self.dictionary = {unknown_word: 0}
@@ -104,7 +116,7 @@ class TFBagOfWords(object):
 
             else:
                 # Get known words
-                known_words = set(Counter(self.dictionary).most_common(max_dictionary_size - 1))
+                known_words = set(collections.Counter(self.dictionary).most_common(max_dictionary_size - 1))
 
                 assert unknown_word not in known_words, \
                     '''Unknown word string '%s' can't be in known words.''' % unknown_word

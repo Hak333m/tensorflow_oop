@@ -2,6 +2,7 @@
 Regression base models.
 """
 
+from tensorflow_oop.compatibility_imports import *
 from tensorflow_oop.neural_network import *
 
 
