@@ -95,3 +95,4 @@ doxygen doc/config.txt
 
 ## ToDo
 1. Add word2vec implementation
+2. Add forward batch by batch
