@@ -2,6 +2,7 @@
 Classification base models.
 """
 
+import numpy as np
 from tensorflow_oop.neural_network import *
 
 
@@ -15,6 +16,7 @@ class TFClassifier(TFNeuralNetwork):
         classes_count      Classification classes count.
         one_hot_targets    Tensor with one hot representation of targets.
         softmax            Softmax layer.
+        log_proba          Logarithm of classes probabilities.
         predictions        Classes indices corresponded to maximum of softmax.
         top_k_placeholder  Placeholder for parameter k in top prediction metrics.
         top_k_softmax      Top k values and indices of softmax.
@@ -22,7 +24,7 @@ class TFClassifier(TFNeuralNetwork):
     """
 
     __slots__ = TFNeuralNetwork.__slots__ + ['classes_count', 'one_hot_targets',
-                                             'softmax', 'predictions',
+                                             'softmax', 'log_proba', 'predictions',
                                              'top_k_placeholder', 'top_k_softmax']
 
     def initialize(self,
@@ -64,6 +66,9 @@ class TFClassifier(TFNeuralNetwork):
         # Add probability operation
         self.softmax = tf.nn.softmax(self.outputs, name='softmax')
 
+        # Add log probability operation
+        self.log_proba = tf.log(self.softmax, name='log_proba')
+
         # Add predictions operation
         self.predictions = tf.argmax(self.outputs, 1, name='predictions')
 
@@ -94,29 +99,60 @@ class TFClassifier(TFNeuralNetwork):
         return tf.reduce_mean(cross_entropy)
 
     @check_initialization
-    @check_inputs_values
-    def predict(self, inputs_values):
+    @check_X
+    def predict(self, X):
         """Get predictions corresponded to maximum probabilities.
 
         Arguments:
-            inputs_values      Batch of inputs values.
+            X                  Batch of inputs values.
 
         Return:
-            probabilities      Batch of all probabilities.
             best_indices       Batch of best prediction indices.
 
         """
-        return self.sess.run([self.softmax, self.predictions], feed_dict={
-            self.inputs: inputs_values,
+        return self.sess.run(self.predictions, feed_dict={
+            self.inputs: X,
         })
 
     @check_initialization
-    @check_inputs_values
-    def predict_top_k(self, inputs_values, k):
+    @check_X
+    def predict_proba(self, X):
+        """Get probabilities of classes.
+
+        Arguments:
+            X                  Batch of inputs values.
+
+        Return:
+            probabilities      Batch of all probabilities.
+
+        """
+        return self.sess.run(self.softmax, feed_dict={
+            self.inputs: X,
+        })
+
+    @check_initialization
+    @check_X
+    def predict_log_proba(self, X):
+        """Get logarithm of probabilities for classes.
+
+        Arguments:
+            X                  Batch of inputs values.
+
+        Return:
+            log_proba          Batch of log probabilities.
+
+        """
+        return self.sess.run(self.log_proba, feed_dict={
+            self.inputs: X,
+        })
+
+    @check_initialization
+    @check_X
+    def predict_top_k(self, X, k):
         """Get predictions corresponded to top k probabilities.
 
         Arguments:
-            inputs_values      Batch of inputs values.
+            X                  Batch of inputs values.
             k                  Count of top predictions.
 
         Return:
@@ -125,9 +161,28 @@ class TFClassifier(TFNeuralNetwork):
 
         """
         return self.sess.run(self.top_k_softmax, feed_dict={
-            self.inputs: inputs_values,
+            self.inputs: X,
             self.top_k_placeholder: k
         })
+
+    @check_initialization
+    @check_X_y_sample_weight
+    def score(self, X, y, sample_weight=None):
+        """Get predictions corresponded to top k probabilities.
+
+        Arguments:
+            X                  Batch of inputs values.
+            y                  True labels for inputs values.
+            sample_weight      Sample weights.
+
+        Return:
+            score              Mean accuracy.
+
+        """
+        y_pred = self.predict(X)
+        differing_labels = np.count_nonzero(y - y_pred, axis=1)
+        score = differing_labels == 0
+        return np.average(score, weights=sample_weight)
 
     def _add_basic_classification_metrics(self, k_values=None):
         """Add basic classification metrics as top accuracy.
@@ -137,6 +192,16 @@ class TFClassifier(TFNeuralNetwork):
                                if not passed used only best prediction as top 1.
 
         """
+        # Calculate accuracy score
+        accuracy = tf.metrics.accuracy(self.targets, self.predictions)
+
+        # Add top K accuracy metric
+        self.add_metric(accuracy,
+                        collections=['batch_train', 'batch_validation',
+                                     'log_train',
+                                     'eval_train', 'eval_validation', 'eval_test'],
+                        key='accuracy')
+
         if k_values is not None:
             # Add top K metrics
             for k in set(k_values):
@@ -151,13 +216,3 @@ class TFClassifier(TFNeuralNetwork):
                                              'log_train',
                                              'eval_train', 'eval_validation', 'eval_test'],
                                 key='top_%s_accuracy' % k)
-        else:
-            # Calculate top K accuracy
-            accuracy = tf.metrics.accuracy(self.targets, self.predictions)
-
-            # Add top K accuracy metric
-            self.add_metric(accuracy,
-                            collections=['batch_train', 'batch_validation',
-                                         'log_train',
-                                         'eval_train', 'eval_validation', 'eval_test'],
-                            key='accuracy')

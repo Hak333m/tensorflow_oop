@@ -6,16 +6,53 @@ import tensorflow as tf
 from tensorflow_oop.dataset import *
 
 
-def check_inputs_values(function):
-    """Decorator for check inputs values."""
-    def wrapper(self, inputs_values, *args, **kwargs):
-        new_shape = np.asarray(np.asarray(inputs_values).shape[1:])
+def check_X(function):
+    """Decorator for check X."""
+    def wrapper(self, X, *args, **kwargs):
+        new_shape = np.asarray(np.asarray(X).shape[1:])
         cur_shape = np.asarray(self.inputs_shape)
         assert np.all(new_shape == cur_shape), \
-            '''Inputs values shape should be correspond to model inputs shape:
-            inputs_values.shape = %s, self.inputs_shape = %s''' \
-            % (inputs_values.shape, self.inputs_shape)
-        return function(self, inputs_values=inputs_values, *args, **kwargs)
+            '''Inputs values X shape should be correspond to model inputs shape:
+            X.shape = %s, self.inputs_shape = %s''' \
+            % (X.shape, self.inputs_shape)
+        return function(self, X=X, *args, **kwargs)
+    return wrapper
+
+
+def check_X_y(function):
+    """Decorator for check X, y."""
+    def wrapper(self, X, y, *args, **kwargs):
+        new_shape = np.asarray(np.asarray(X).shape[1:])
+        cur_shape = np.asarray(self.inputs_shape)
+        assert np.all(new_shape == cur_shape), \
+            '''Inputs values X shape should be correspond to model inputs shape:
+            X.shape = %s, self.inputs_shape = %s''' \
+            % (X.shape, self.inputs_shape)
+        assert len(X) == len(y), \
+            '''Inputs values X and labels y should be the same length:
+            len(X) = %s, len(y) = %s''' % (len(X), len(y))
+        return function(self, X=X, y=y, *args, **kwargs)
+    return wrapper
+
+
+def check_X_y_sample_weight(function):
+    """Decorator for check X, y, sample_weight."""
+    def wrapper(self, X, y, sample_weight, *args, **kwargs):
+        new_shape = np.asarray(np.asarray(X).shape[1:])
+        cur_shape = np.asarray(self.inputs_shape)
+        assert np.all(new_shape == cur_shape), \
+            '''Inputs values X shape should be correspond to model inputs shape:
+            X.shape = %s, self.inputs_shape = %s''' \
+            % (X.shape, self.inputs_shape)
+        if sample_weight is not None:
+            assert len(X) == len(y) and len(y) == len(sample_weight), \
+                '''Inputs values X, labels y and sample weights should be the same length:
+                len(X) = %s, len(y) = %s, len(sample_weight) = %s''' % (len(X), len(y), len(sample_weight))
+        else:
+            assert len(X) == len(y), \
+                '''Inputs values X and labels y should be the same length:
+                len(X) = %s, len(y) = %s''' % (len(X), len(y))
+        return function(self, X=X, y=y, sample_weight=sample_weight, *args, **kwargs)
     return wrapper
 
 
