@@ -4,6 +4,7 @@ Classification base models.
 
 import numpy as np
 from tensorflow_oop.neural_network import *
+from tensorflow_oop.metrics import accuracy_score
 
 
 class TFClassifier(TFNeuralNetwork):
@@ -168,7 +169,7 @@ class TFClassifier(TFNeuralNetwork):
     @check_initialization
     @check_X_y_sample_weight
     def score(self, X, y, sample_weight=None):
-        """Get predictions corresponded to top k probabilities.
+        """Get mean accuracy score.
 
         Arguments:
             X                  Batch of inputs values.
@@ -179,10 +180,7 @@ class TFClassifier(TFNeuralNetwork):
             score              Mean accuracy.
 
         """
-        y_pred = self.predict(X)
-        differing_labels = np.count_nonzero(y - y_pred, axis=1)
-        score = differing_labels == 0
-        return np.average(score, weights=sample_weight)
+        return accuracy_score(y, self.predict(X), sample_weight=sample_weight)
 
     def _add_basic_classification_metrics(self, k_values=None):
         """Add basic classification metrics as top accuracy.
